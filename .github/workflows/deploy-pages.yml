@@ -1,4 +1,4 @@
-name: Deploy repoMap to GitHub Pages
+name: Deploy repovisualizer to GitHub Pages
 
 on:
   push:
