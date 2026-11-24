@@ -1,0 +1,12 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+    container_name: repomap-frontend
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/vite.config.ts:/app/vite.config.ts
+    command: npm run dev -- --host 0.0.0.0
