@@ -15,6 +15,16 @@ const defaultRepoUrls: Record<RepositoryProvider, string> = {
   gitlab: "https://gitlab.com/DouglasLino/testdiagramview"
 };
 
+const DARK_MODE_STORAGE_KEY = "repovisualizer-dark-mode";
+
+function readInitialDarkMode(): boolean {
+  try {
+    return window.localStorage.getItem(DARK_MODE_STORAGE_KEY) === "true";
+  } catch {
+    return false;
+  }
+}
+
 export function App() {
   const [provider, setProvider] = useState<RepositoryProvider>("github");
   const [repoUrl, setRepoUrl] = useState(defaultRepoUrls.github);
@@ -25,11 +35,24 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<GraphNode | null>(null);
+  const [darkMode, setDarkMode] = useState(readInitialDarkMode);
   const commitLimitRequestRef = useRef(0);
 
   useEffect(() => {
     setSelectedNode(null);
   }, [graph]);
+
+  useEffect(() => {
+    try {
+      window.localStorage.setItem(DARK_MODE_STORAGE_KEY, String(darkMode));
+    } catch {
+      // La aplicación sigue funcionando aunque el navegador bloquee localStorage.
+    }
+  }, [darkMode]);
+
+  function toggleDarkMode() {
+    setDarkMode((current) => !current);
+  }
 
   async function handleGraph() {
     setLoading(true);
@@ -208,7 +231,7 @@ export function App() {
   }
 
   return (
-    <main className={`app app-provider-${provider}`}>
+    <main className={`app app-provider-${provider}`} data-theme={darkMode ? "dark" : "light"}>
       <header className="topbar">
         <div>
           <span className="eyebrow">{provider === "gitlab" ? "GitLab" : "GitHub"} Graph Visualizer</span>
@@ -254,6 +277,8 @@ export function App() {
         onBranchesRequest={handleBranchSelection}
         onRefresh={handleRefresh}
         refreshing={loading}
+        darkMode={darkMode}
+        onToggleDarkMode={toggleDarkMode}
       />
 
       {selectedNode ? (
