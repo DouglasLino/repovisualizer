@@ -67,6 +67,8 @@ interface RepoFlowCanvasProps {
   onBranchesRequest?: (branches: string[]) => Promise<void>;
   onRefresh?: (branches: string[]) => void;
   refreshing?: boolean;
+  darkMode?: boolean;
+  onToggleDarkMode?: () => void;
 }
 
 type NodePositionMap = Record<string, XYPosition>;
@@ -165,6 +167,8 @@ function RepoFlowCanvasInner({
   onBranchesRequest,
   onRefresh,
   refreshing = false,
+  darkMode = false,
+  onToggleDarkMode,
 }: RepoFlowCanvasProps) {
   const reactFlow = useReactFlow();
   const updateNodeInternals = useUpdateNodeInternals();
@@ -911,6 +915,8 @@ function RepoFlowCanvasInner({
             )}
             historyMode={historyMode}
             connectionStyle={connectionStyle}
+            darkMode={darkMode}
+            onToggleDarkMode={onToggleDarkMode}
             onToggleLayout={changeOrientation}
             onToggleCommits={() =>
               setExpandedCommitBranches((current) =>
