@@ -5,55 +5,59 @@ import {
   type BranchSettings
 } from "./branchSettings";
 
-/** Compara nombres de ramas sin distinguir mayúsculas y minúsculas. */
-function normalizeBranch(branch: string): string {
-  return branch.trim().toLowerCase();
-}
-
-/** Comprueba si una rama está configurada como rama principal. */
+/**
+ * Comprueba si una rama está incluida en la lista
+ * configurable de ramas principales.
+ */
 export function isEnvironmentBranch(
   branch: string,
   settings: BranchSettings = DEFAULT_BRANCH_SETTINGS
 ): boolean {
-  const name = normalizeBranch(branch);
-
   return settings.mainBranches.some(
-    (mainBranch) => normalizeBranch(mainBranch) === name
+    (mainBranch) => mainBranch.toLowerCase() === branch.toLowerCase()
   );
 }
 
-/** Obtiene el grupo de una rama según los separadores configurados. */
+/**
+ * Obtiene el grupo al que pertenece una rama.
+ *
+ * Ejemplos:
+ * feature/login  -> feature
+ * ejemplo_a      -> ejemplo
+ * bugfix/error   -> bugfix
+ */
 function branchGroup(
   branch: string,
-  settings: BranchSettings = DEFAULT_BRANCH_SETTINGS
+  settings: BranchSettings
 ): string {
-  const name = branch.trim();
   const separators = settings.groupSeparators
     .filter(Boolean)
-    .sort((a, b) => b.length - a.length);
+    .sort((a, b) => a.length - b.length);
 
-  let firstSeparatorIndex = -1;
+  let separatorIndex = -1;
 
   for (const separator of separators) {
-    const index = name.indexOf(separator);
+    const index = branch.indexOf(separator);
 
     if (
       index > 0 &&
-      (firstSeparatorIndex === -1 || index < firstSeparatorIndex)
+      (separatorIndex === -1 || index < separatorIndex)
     ) {
-      firstSeparatorIndex = index;
+      separatorIndex = index;
     }
   }
 
-  const group =
-    firstSeparatorIndex > 0
-      ? name.slice(0, firstSeparatorIndex)
-      : name;
-
-  return group.trim().toLowerCase();
+  return (
+    separatorIndex > 0
+      ? branch.slice(0, separatorIndex)
+      : branch
+  ).trim().toLowerCase();
 }
 
-/** Ordena ramas del mismo grupo usando las relaciones del grafo. */
+/**
+ * Ordena ramas relacionadas utilizando las relaciones
+ * existentes en el grafo, evitando ciclos.
+ */
 function branchRelationOrder(
   graph: GraphResponse | null | undefined,
   branches: string[],
@@ -65,6 +69,7 @@ function branchRelationOrder(
   }
 
   const branchSet = new Set(branches);
+
   const fallbackIndex = new Map(
     fallbackOrder.map((branch, index) => [branch, index])
   );
@@ -86,8 +91,13 @@ function branchRelationOrder(
     toBranch: string,
     visited = new Set<string>()
   ): boolean {
-    if (fromBranch === toBranch) return true;
-    if (visited.has(fromBranch)) return false;
+    if (fromBranch === toBranch) {
+      return true;
+    }
+
+    if (visited.has(fromBranch)) {
+      return false;
+    }
 
     visited.add(fromBranch);
 
@@ -101,10 +111,22 @@ function branchRelationOrder(
     parentBranch: string | null | undefined,
     childBranch: string | null | undefined
   ) {
-    if (!parentBranch || !childBranch) return;
-    if (parentBranch === childBranch) return;
-    if (!branchSet.has(parentBranch) || !branchSet.has(childBranch)) return;
+    if (
+      !parentBranch ||
+      !childBranch ||
+      parentBranch === childBranch
+    ) {
+      return;
+    }
 
+    if (
+      !branchSet.has(parentBranch) ||
+      !branchSet.has(childBranch)
+    ) {
+      return;
+    }
+
+    // Solo ordenamos relaciones dentro del mismo grupo.
     if (
       branchGroup(parentBranch, settings) !==
       branchGroup(childBranch, settings)
@@ -114,8 +136,14 @@ function branchRelationOrder(
 
     const children = outgoing.get(parentBranch);
 
-    if (!children || children.has(childBranch)) return;
-    if (hasPath(childBranch, parentBranch)) return;
+    if (!children || children.has(childBranch)) {
+      return;
+    }
+
+    // Evitamos introducir ciclos.
+    if (hasPath(childBranch, parentBranch)) {
+      return;
+    }
 
     children.add(childBranch);
 
@@ -144,7 +172,9 @@ function branchRelationOrder(
   const ordered: string[] = [];
 
   const queue = branches
-    .filter((branch) => (incomingCount.get(branch) ?? 0) === 0)
+    .filter(
+      (branch) => (incomingCount.get(branch) ?? 0) === 0
+    )
     .sort(
       (left, right) =>
         (fallbackIndex.get(left) ?? 0) -
@@ -188,18 +218,24 @@ function branchRelationOrder(
 
   return [
     ...ordered,
-    ...fallbackOrder.filter((branch) => !orderedSet.has(branch))
+    ...fallbackOrder.filter(
+      (branch) => !orderedSet.has(branch)
+    )
   ];
 }
 
-/** Ordena las ramas agrupadas que no son ramas principales. */
+/**
+ * Agrupa y ordena las ramas que no son principales.
+ */
 export function groupedBranches(
   branches: string[],
   graph?: GraphResponse,
   settings: BranchSettings = DEFAULT_BRANCH_SETTINGS
 ): string[] {
   const fallbackOrder = branches
-    .filter((branch) => !isEnvironmentBranch(branch, settings))
+    .filter(
+      (branch) => !isEnvironmentBranch(branch, settings)
+    )
     .sort((left, right) => {
       const leftGroup = branchGroup(left, settings);
       const rightGroup = branchGroup(right, settings);
@@ -219,20 +255,23 @@ export function groupedBranches(
   );
 }
 
-/** Devuelve las ramas principales siguiendo el orden de configuración. */
+/**
+ * Devuelve las ramas principales respetando exactamente
+ * el orden definido en la configuración.
+ */
 export function environmentBranches(
   branches: string[],
   settings: BranchSettings = DEFAULT_BRANCH_SETTINGS
 ): string[] {
   const availableBranches = new Map(
-    branches.map((branch) => [normalizeBranch(branch), branch])
+    branches.map((branch) => [branch.toLowerCase(), branch])
   );
 
   const ordered: string[] = [];
   const included = new Set<string>();
 
   settings.mainBranches.forEach((mainBranch) => {
-    const normalized = normalizeBranch(mainBranch);
+    const normalized = mainBranch.toLowerCase();
     const actualBranch = availableBranches.get(normalized);
 
     if (actualBranch && !included.has(normalized)) {
@@ -244,7 +283,11 @@ export function environmentBranches(
   return ordered;
 }
 
-/** Devuelve el orden de ramas para el diseño horizontal. */
+/**
+ * Devuelve la secuencia de ramas para el diseño horizontal.
+ * Las ramas principales quedan a la derecha y los grupos
+ * automáticos se distribuyen hacia la izquierda.
+ */
 export function horizontalBranches(
   branches: string[],
   graph?: GraphResponse,
@@ -256,10 +299,14 @@ export function horizontalBranches(
   ];
 }
 
+/**
+ * Obtiene los grupos únicos respetando los separadores
+ * configurados.
+ */
 function groupedBranchGroups(
   branches: string[],
-  graph: GraphResponse | undefined,
-  settings: BranchSettings
+  graph?: GraphResponse,
+  settings: BranchSettings = DEFAULT_BRANCH_SETTINGS
 ): string[] {
   return Array.from(
     new Set(
@@ -270,7 +317,9 @@ function groupedBranchGroups(
   );
 }
 
-/** Calcula la columna de una rama agrupada. */
+/**
+ * Calcula la columna de una rama agrupada.
+ */
 export function groupedBranchColumn(
   branch: string,
   branches: string[],
@@ -311,7 +360,9 @@ export function groupedBranchColumn(
   return Math.max(0, grouped.indexOf(branch));
 }
 
-/** Calcula la fila de una rama agrupada. */
+/**
+ * Calcula la fila de una rama agrupada.
+ */
 export function groupedBranchRow(
   branch: string,
   branches: string[],
