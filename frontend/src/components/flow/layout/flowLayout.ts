@@ -1,3 +1,4 @@
+
 import type { GraphNode, GraphResponse, RepositoryProvider } from "../../../types/graph";
 export { initialVisibleBranches } from "../../../services/branchSelection";
 import type {
@@ -16,6 +17,10 @@ import {
   horizontalBranches,
   isEnvironmentBranch
 } from "./branchOrdering";
+import {
+  DEFAULT_BRANCH_SETTINGS,
+  type BranchSettings
+} from "./branchSettings";
 
 export const branchNodeWidth = 156;
 export const branchNodeHeight = 42;
@@ -118,6 +123,7 @@ function preferredSourceSide(source: GraphNode | undefined, target: GraphNode | 
 
   const sourceBranch = source.branch ?? source.label;
   const targetBranch = target.branch ?? target.label;
+
   if (source.type === "branch" && target.type === "commit") {
     return "bottom";
   }
@@ -161,31 +167,40 @@ function defaultEdgeSides(
 }
 
 /** Calculates the branch lane used by React Flow for the current orientation. */
-function branchPosition(branch: string, branches: string[], orientation: FlowOrientation, graph?: GraphResponse) {
+function branchPosition(
+  branch: string,
+  branches: string[],
+  orientation: FlowOrientation,
+  graph?: GraphResponse,
+  settings: BranchSettings = DEFAULT_BRANCH_SETTINGS
+) {
   const branchColumnGap = 185;
 
   if (orientation === "horizontal") {
-    const ordered = horizontalBranches(branches, graph);
+    const ordered = horizontalBranches(branches, graph, settings);
     const lane = Math.max(0, ordered.indexOf(branch));
+
     return {
       x: horizontalBranchStartX - lane * horizontalBranchStepX,
       y: horizontalBranchStartY + lane * horizontalBranchGapY
     };
   }
 
-  if (isEnvironmentBranch(branch)) {
-    const environment = environmentBranches(branches);
+  if (isEnvironmentBranch(branch, settings)) {
+    const environment = environmentBranches(branches, settings);
     const environmentIndex = Math.max(0, environment.indexOf(branch));
-    const grouped = groupedBranches(branches, graph);
+    const grouped = groupedBranches(branches, graph, settings);
+
     return {
       x: 210 + Math.max(1, grouped.length) * branchColumnGap + 70 + environmentIndex * 165,
       y: 125 + (environment.length - environmentIndex - 1) * 40
     };
   }
 
-  const environmentRowsHeight = environmentBranches(branches).length * 40;
-  const column = groupedBranchColumn(branch, branches, graph);
-  const row = groupedBranchRow(branch, branches, graph);
+  const environmentRowsHeight = environmentBranches(branches, settings).length * 40;
+  const column = groupedBranchColumn(branch, branches, graph, settings);
+  const row = groupedBranchRow(branch, branches, graph, settings);
+
   return {
     x: 210 + column * branchColumnGap,
     y: 185 + environmentRowsHeight + row * 180
@@ -197,10 +212,12 @@ function commitPosition(
   graph: GraphResponse,
   branches: string[],
   orientation: FlowOrientation,
-  positionNodeIds?: Set<string>
+  positionNodeIds?: Set<string>,
+  settings: BranchSettings = DEFAULT_BRANCH_SETTINGS
 ) {
   const branch = node.branch ?? "";
-  const base = branchPosition(branch, branches, orientation, graph);
+  const base = branchPosition(branch, branches, orientation, graph, settings);
+
   const commits = graph.nodes
     .filter((candidate) => (
       candidate.type === "commit"
@@ -208,6 +225,7 @@ function commitPosition(
       && (!positionNodeIds || positionNodeIds.has(candidate.id))
     ))
     .sort(compareCommitSequence);
+
   const index = Math.max(0, commits.findIndex((candidate) => candidate.id === node.id));
 
   return orientation === "horizontal"
@@ -235,7 +253,8 @@ export function buildFlowElements({
   visibleEdgeIds,
   fadingNodeIds,
   fadingEdgeIds,
-  layoutNodeIds
+  layoutNodeIds,
+  branchSettings = DEFAULT_BRANCH_SETTINGS
 }: {
   graph: GraphResponse;
   visibleBranches: string[];
@@ -250,28 +269,42 @@ export function buildFlowElements({
   fadingNodeIds?: Set<string>;
   fadingEdgeIds?: Set<string>;
   layoutNodeIds?: Set<string> | null;
+  branchSettings?: BranchSettings;
 }): { nodes: RepoFlowNode[]; edges: RepoFlowEdge[] } {
   const branchSet = new Set(visibleBranches);
   const expandedBranchSet = new Set(expandedCommitBranches);
+
   const positionNodeIds = layoutNodeIds === null
     ? undefined
     : layoutNodeIds ?? visibleNodeIds;
+
   const nodes = graph.nodes
     .filter((node) => {
       const branch = node.branch ?? "";
+
       if (!branchSet.has(branch)) {
         return false;
       }
+
       if (visibleNodeIds && !visibleNodeIds.has(node.id)) {
         return false;
       }
+
       return node.type === "branch" || expandedBranchSet.has(branch);
     })
     .map<RepoFlowNode>((node) => {
       const branch = node.branch ?? node.label;
+
       const position = node.type === "branch"
-        ? branchPosition(branch, visibleBranches, orientation, graph)
-        : commitPosition(node, graph, visibleBranches, orientation, positionNodeIds);
+        ? branchPosition(branch, visibleBranches, orientation, graph, branchSettings)
+        : commitPosition(
+            node,
+            graph,
+            visibleBranches,
+            orientation,
+            positionNodeIds,
+            branchSettings
+          );
 
       return {
         id: node.id,
@@ -292,6 +325,7 @@ export function buildFlowElements({
   const renderedNodeIds = new Set(nodes.map((node) => node.id));
   const graphNodeById = new Map(graph.nodes.map((node) => [node.id, node]));
   const flowNodeById = new Map(nodes.map((node) => [node.id, node]));
+
   const branchHeadEdgeIds = new Set(
     visibleNodeIds
       ? nodes
@@ -303,6 +337,7 @@ export function buildFlowElements({
           .filter((edgeId): edgeId is string => Boolean(edgeId))
       : []
   );
+
   const renderedGraphEdges = graph.edges
     .filter((edge) => (
       renderedNodeIds.has(edge.source)
@@ -310,6 +345,7 @@ export function buildFlowElements({
       && (!visibleEdgeIds || visibleEdgeIds.has(edge.id))
       && (!visibleNodeIds || edge.type !== "branch_commit" || !branchHeadEdgeIds.has(`${edge.source}->${edge.target}`))
     ));
+
   const taxiLaneIndexes = new Map<string, number>();
 
   renderedGraphEdges
@@ -381,12 +417,14 @@ export function buildFlowElements({
       commits.slice(0, -1).forEach((commit, index) => {
         const nextCommit = commits[index + 1];
         const pairId = `${commit.id}->${nextCommit.id}`;
+
         if (edgePairIds.has(pairId)) {
           return;
         }
 
         const id = `history-continuity:${commit.id}:${nextCommit.id}`;
         const sides = defaultEdgeSides("parent", commit.data.graphNode, nextCommit.data.graphNode, orientation);
+
         edges.push({
           id,
           source: commit.id,
@@ -410,6 +448,7 @@ export function buildFlowElements({
             onAnchorChange
           }
         });
+
         edgePairIds.add(pairId);
       });
     });
@@ -418,12 +457,14 @@ export function buildFlowElements({
       .filter((node) => node.type === "branch")
       .forEach((branchNode) => {
         const commit = latestVisibleCommit(branchNode.data.branch, nodes);
+
         if (!commit) {
           return;
         }
 
         const id = `history-branch-head:${branchNode.id}:${commit.id}`;
         const sides = defaultEdgeSides("branch_commit", branchNode.data.graphNode, commit.data.graphNode, orientation);
+
         edges.push({
           id,
           source: branchNode.id,

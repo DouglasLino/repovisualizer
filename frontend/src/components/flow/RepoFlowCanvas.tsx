@@ -46,6 +46,11 @@ import type {
   RepoFlowNode,
 } from "./types";
 import { Button } from "primereact/button";
+import { BranchSettingsPanel } from "./BranchSettingsPanel";
+import {
+  createDefaultBranchSettings,
+  type BranchSettings
+} from "./layout/branchSettings";
 
 const nodeTypes: NodeTypes = {
   branch: BranchNode,
@@ -62,6 +67,8 @@ interface RepoFlowCanvasProps {
   onBranchesRequest?: (branches: string[]) => Promise<void>;
   onRefresh?: (branches: string[]) => void;
   refreshing?: boolean;
+  darkMode?: boolean;
+  onToggleDarkMode?: () => void;
 }
 
 type NodePositionMap = Record<string, XYPosition>;
@@ -160,6 +167,8 @@ function RepoFlowCanvasInner({
   onBranchesRequest,
   onRefresh,
   refreshing = false,
+  darkMode = false,
+  onToggleDarkMode,
 }: RepoFlowCanvasProps) {
   const reactFlow = useReactFlow();
   const updateNodeInternals = useUpdateNodeInternals();
@@ -185,6 +194,36 @@ function RepoFlowCanvasInner({
     width: 0,
     height: 0,
   });
+  const [branchSettings, setBranchSettings] = useState<BranchSettings>(() => {
+    try {
+      const saved = localStorage.getItem("repovisualizer-branch-settings");
+
+      if (saved) {
+        const parsed = JSON.parse(saved) as Partial<BranchSettings>;
+        const defaults = createDefaultBranchSettings();
+
+        return {
+          mainBranches: Array.isArray(parsed.mainBranches)
+            ? parsed.mainBranches.filter(
+                (item): item is string =>
+                  typeof item === "string" && item.trim().length > 0,
+              )
+            : defaults.mainBranches,
+          groupSeparators: Array.isArray(parsed.groupSeparators)
+            ? parsed.groupSeparators.filter(
+                (item): item is string =>
+                  typeof item === "string" && item.length === 1,
+              )
+            : defaults.groupSeparators,
+        };
+      }
+    } catch {
+      // Si las preferencias guardadas no son válidas, usamos los valores predeterminados.
+    }
+
+    return createDefaultBranchSettings();
+  });
+  const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
   const commitsBeforeHistoryRef = useRef<string[]>([]);
   const shouldFitRef = useRef(false);
   const edgesRef = useRef<RepoFlowEdge[]>([]);
@@ -194,6 +233,13 @@ function RepoFlowCanvasInner({
     branch: string;
     lastPosition: XYPosition;
   } | null>(null);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "repovisualizer-branch-settings",
+      JSON.stringify(branchSettings),
+    );
+  }, [branchSettings]);
 
   const EMPTY_BRANCHES: string[] = [];
 
@@ -342,6 +388,7 @@ function RepoFlowCanvasInner({
       expandedCommitBranches,
       orientation,
       connectionStyle,
+      branchSettings,
       edgeEdits: {},
       onCurveChange: changeEdgeCurve,
       onAnchorChange: changeEdgeAnchor,
@@ -353,6 +400,7 @@ function RepoFlowCanvasInner({
     });
   }, [
     branches,
+    branchSettings,
     connectionStyle,
     expandedCommitBranches,
     graph,
@@ -645,6 +693,13 @@ function RepoFlowCanvasInner({
     shouldFitRef.current = true;
   }
 
+  function saveBranchSettings(nextSettings: BranchSettings) {
+    setBranchSettings(nextSettings);
+    setSettingsPanelOpen(false);
+    setNodePositions({});
+    shouldFitRef.current = true;
+  }
+
   function changeEdgeCurve(edgeId: string, curveOffset: number) {
     const nextOffset = Math.round(curveOffset);
 
@@ -860,6 +915,8 @@ function RepoFlowCanvasInner({
             )}
             historyMode={historyMode}
             connectionStyle={connectionStyle}
+            darkMode={darkMode}
+            onToggleDarkMode={onToggleDarkMode}
             onToggleLayout={changeOrientation}
             onToggleCommits={() =>
               setExpandedCommitBranches((current) =>
@@ -871,6 +928,7 @@ function RepoFlowCanvasInner({
             onToggleHistory={toggleHistoryMode}
             onExportDiagram={exportDiagram}
             onConnectionStyleChange={changeConnectionStyle}
+            onOpenSettings={() => setSettingsPanelOpen(true)}
           />
           <ReactFlow
             nodes={nodes}
@@ -921,6 +979,13 @@ function RepoFlowCanvasInner({
           />
         </div>
       </section>
+      {settingsPanelOpen ? (
+        <BranchSettingsPanel
+          settings={branchSettings}
+          onSave={saveBranchSettings}
+          onClose={() => setSettingsPanelOpen(false)}
+        />
+      ) : null}
     </>
   );
 }
