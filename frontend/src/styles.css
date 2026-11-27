@@ -1177,3 +1177,447 @@ h1 {
   font-weight: 700;
   font-size: 1.05rem;
 }
+
+/* =========================================================
+   RepoVisualizer: panel de configuración y tema oscuro
+   El tema se activa cuando el elemento .app tiene
+   data-theme="dark".
+   ========================================================= */
+
+.branch-settings-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(15, 23, 42, 0.48);
+  backdrop-filter: blur(3px);
+  animation: branch-settings-fade 160ms ease;
+}
+
+.branch-settings-panel {
+  width: min(620px, 100%);
+  max-height: min( min(780px, 90vh), 90vh);
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
+  color: #1e293b;
+  background: #ffffff;
+  border: 1px solid #dbe4ef;
+  border-radius: 14px;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+  animation: branch-settings-panel-in 180ms ease;
+}
+
+.branch-settings-header,
+.branch-settings-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  background: #ffffff;
+}
+
+.branch-settings-header {
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.branch-settings-header h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 19px;
+  line-height: 1.3;
+}
+
+.branch-settings-header p,
+.branch-settings-section > p {
+  margin: 6px 0 0;
+  color: #64748b;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.branch-settings-content {
+  display: grid;
+  gap: 22px;
+  overflow-y: auto;
+  padding: 20px 22px;
+}
+
+.branch-settings-section {
+  display: grid;
+  gap: 12px;
+}
+
+.branch-settings-section h3 {
+  margin: 0;
+  color: #1e293b;
+  font-size: 15px;
+}
+
+.branch-settings-list {
+  display: grid;
+  gap: 7px;
+}
+
+.branch-settings-row {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 9px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.branch-settings-order {
+  flex: 0 0 25px;
+  display: grid;
+  place-items: center;
+  width: 25px;
+  height: 25px;
+  color: #475569;
+  background: #e2e8f0;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.branch-settings-row > strong {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+  color: #1e293b;
+  font-size: 13px;
+}
+
+.branch-settings-row-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.branch-settings-row-actions .p-button,
+.branch-settings-separator .p-button {
+  width: 32px;
+  height: 32px;
+}
+
+.branch-settings-empty {
+  margin: 0;
+  padding: 14px;
+  color: #64748b;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.branch-settings-add {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.branch-settings-add .p-inputtext {
+  min-width: 0;
+  flex: 1;
+  width: 100%;
+}
+
+.branch-settings-add .p-button {
+  flex: 0 0 auto;
+}
+
+.branch-settings-separators {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.branch-settings-separator {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 5px 3px 12px;
+  color: #1e293b;
+  background: #f1f5f9;
+  border: 1px solid #dbe4ef;
+  border-radius: 8px;
+}
+
+.branch-settings-separator code {
+  min-width: 14px;
+  font-size: 14px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.branch-settings-section > small {
+  color: #64748b;
+  font-size: 12px;
+}
+
+.branch-settings-footer {
+  justify-content: flex-end;
+  border-top: 1px solid #e2e8f0;
+}
+
+@keyframes branch-settings-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes branch-settings-panel-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.99); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Tema oscuro global. Se aplica al contenedor principal de la aplicación. */
+.app[data-theme="dark"] {
+  color: #e2e8f0;
+  background: #0f172a;
+  --surface-page: #0f172a;
+  --surface-card: #172033;
+  --surface-raised: #1e293b;
+  --surface-muted: #263449;
+  --border-color: #334155;
+  --text-primary: #e2e8f0;
+  --text-secondary: #a8b6c9;
+  color-scheme: dark;
+}
+
+.app[data-theme="dark"] .topbar,
+.app[data-theme="dark"] .graph-shell {
+  color: var(--text-primary);
+  background: var(--surface-card);
+  border-color: var(--border-color);
+}
+
+.app[data-theme="dark"] .topbar {
+  border-bottom-color: var(--border-color);
+}
+
+.app[data-theme="dark"] .repo-provider-toggle,
+.app[data-theme="dark"] .repo-provider-option:hover,
+.app[data-theme="dark"] .graph-empty,
+.app[data-theme="dark"] .branch-trigger.p-button,
+.app[data-theme="dark"] .branch-option:hover,
+.app[data-theme="dark"] .branch-settings-row,
+.app[data-theme="dark"] .branch-settings-empty,
+.app[data-theme="dark"] .branch-settings-separator {
+  color: var(--text-primary);
+  background: var(--surface-muted);
+  border-color: var(--border-color);
+}
+
+.app[data-theme="dark"] .repo-provider-option,
+.app[data-theme="dark"] .repo-url-icon,
+.app[data-theme="dark"] .provider-token-field label,
+.app[data-theme="dark"] .max-commits-field label,
+.app[data-theme="dark"] .graph-empty,
+.app[data-theme="dark"] .graph-summary span,
+.app[data-theme="dark"] .legend span,
+.app[data-theme="dark"] .branch-trigger.p-button,
+.app[data-theme="dark"] .branch-menu-header .p-button,
+.app[data-theme="dark"] .branch-option,
+.app[data-theme="dark"] .branch-empty,
+.app[data-theme="dark"] .repo-flow-commit-wrap,
+.app[data-theme="dark"] .utility-menu .utility-button.p-button,
+.app[data-theme="dark"] .utility-tooltip,
+.app[data-theme="dark"] .zoom-controls,
+.app[data-theme="dark"] .zoom-controls .p-button,
+.app[data-theme="dark"] .zoom-controls .zoom-level,
+.app[data-theme="dark"] .graph-legend,
+.app[data-theme="dark"] .graph-legend-item strong,
+.app[data-theme="dark"] .node-details-heading,
+.app[data-theme="dark"] .node-details p,
+.app[data-theme="dark"] .node-details-close,
+.app[data-theme="dark"] .branch-settings-header h2,
+.app[data-theme="dark"] .branch-settings-section h3,
+.app[data-theme="dark"] .branch-settings-row > strong,
+.app[data-theme="dark"] .branch-settings-separator,
+.app[data-theme="dark"] .branch-settings-separator code {
+  color: var(--text-primary);
+}
+
+.app[data-theme="dark"] .provider-token-field label,
+.app[data-theme="dark"] .max-commits-field label,
+.app[data-theme="dark"] .graph-summary span,
+.app[data-theme="dark"] .branch-empty,
+.app[data-theme="dark"] .branch-settings-header p,
+.app[data-theme="dark"] .branch-settings-section > p,
+.app[data-theme="dark"] .branch-settings-section > small,
+.app[data-theme="dark"] .branch-settings-empty {
+  color: var(--text-secondary);
+}
+
+.app[data-theme="dark"] .graph-toolbar,
+.app[data-theme="dark"] .branch-menu,
+.app[data-theme="dark"] .branch-tab,
+.app[data-theme="dark"] .branch-options,
+.app[data-theme="dark"] .branch-option-all {
+  border-color: var(--border-color);
+}
+
+.app[data-theme="dark"] .branch-menu,
+.app[data-theme="dark"] .branch-tab,
+.app[data-theme="dark"] .utility-tooltip,
+.app[data-theme="dark"] .zoom-controls,
+.app[data-theme="dark"] .graph-legend,
+.app[data-theme="dark"] .node-details-drawer,
+.app[data-theme="dark"] .branch-settings-panel,
+.app[data-theme="dark"] .branch-settings-header,
+.app[data-theme="dark"] .branch-settings-footer {
+  color: var(--text-primary);
+  background: var(--surface-card);
+  border-color: var(--border-color);
+}
+
+.app[data-theme="dark"] .graph-toolbar,
+.app[data-theme="dark"] .branch-settings-header,
+.app[data-theme="dark"] .branch-settings-footer {
+  border-bottom-color: var(--border-color);
+}
+
+.app[data-theme="dark"] .branch-settings-footer {
+  border-top-color: var(--border-color);
+}
+
+.app[data-theme="dark"] .graph-canvas,
+.app[data-theme="dark"] .repo-flow-workspace {
+  background:
+    linear-gradient(rgba(148, 163, 184, 0.075) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(148, 163, 184, 0.075) 1px, transparent 1px),
+    #111c2e;
+  background-size: 28px 28px;
+}
+
+.app[data-theme="dark"] .repo-flow-edge-edit {
+  background: #1e293b;
+  border-color: #cbd5e1;
+}
+
+.app[data-theme="dark"] .repo-flow-node-selected .repo-flow-branch,
+.app[data-theme="dark"] .repo-flow-node-selected .repo-flow-commit,
+.app[data-theme="dark"] .repo-flow-branch.repo-flow-node-selected {
+  outline-color: #f8fafc;
+}
+
+.app[data-theme="dark"] .utility-menu .utility-button.p-button {
+  background: rgba(30, 41, 59, 0.82);
+  border-color: rgba(71, 85, 105, 0.9);
+}
+
+.app[data-theme="dark"] .utility-menu .utility-button.p-button:hover,
+.app[data-theme="dark"] .utility-menu .utility-button.p-button:focus-visible {
+  background: #334155;
+}
+
+.app[data-theme="dark"] .utility-menu .utility-button-active.p-button {
+  color: #ffffff;
+  background: var(--accent-color);
+  border-color: var(--accent-color);
+}
+
+.app[data-theme="dark"] .utility-tooltip {
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+}
+
+.app[data-theme="dark"] .graph-legend-commit {
+  border-color: #1e293b;
+}
+
+.app[data-theme="dark"] .node-details-close:hover {
+  color: #ffffff;
+  background: #334155;
+}
+
+.app[data-theme="dark"] .branch-settings-row {
+  background: #1e293b;
+}
+
+.app[data-theme="dark"] .branch-settings-order {
+  color: #e2e8f0;
+  background: #334155;
+}
+
+.app[data-theme="dark"] .branch-settings-separator {
+  background: #263449;
+}
+
+.app[data-theme="dark"] .branch-settings-header,
+.app[data-theme="dark"] .branch-settings-footer {
+  background: #172033;
+}
+
+.app[data-theme="dark"] .branch-settings-panel .p-inputtext {
+  color: #e2e8f0;
+  background: #0f172a;
+  border-color: #475569;
+}
+
+.app[data-theme="dark"] .branch-settings-panel .p-inputtext::placeholder {
+  color: #94a3b8;
+}
+
+.app[data-theme="dark"] .history-controls {
+  background: rgba(23, 32, 51, 0.94);
+  border-color: var(--border-color);
+}
+
+.app[data-theme="dark"] .history-controls .p-button.p-disabled {
+  color: #64748b;
+  background: #263449;
+  border-color: #334155;
+}
+
+.app[data-theme="dark"] .history-backdrop {
+  background: rgba(2, 6, 23, 0.62);
+}
+
+/* Mantiene el panel utilizable en pantallas pequeñas. */
+@media (max-width: 600px) {
+  .branch-settings-backdrop {
+    align-items: end;
+    padding: 10px;
+  }
+
+  .branch-settings-panel {
+    width: 100%;
+    max-height: 92vh;
+    border-radius: 14px 14px 10px 10px;
+  }
+
+  .branch-settings-header,
+  .branch-settings-footer {
+    padding: 14px 16px;
+  }
+
+  .branch-settings-content {
+    gap: 18px;
+    padding: 16px;
+  }
+
+  .branch-settings-add {
+    align-items: stretch;
+  }
+
+  .branch-settings-add .p-button {
+    padding-inline: 10px;
+  }
+
+  .branch-settings-row {
+    gap: 7px;
+    padding: 6px;
+  }
+
+  .branch-settings-row-actions .p-button {
+    width: 29px;
+    height: 29px;
+  }
+}
